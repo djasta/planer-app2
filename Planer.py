@@ -7,10 +7,10 @@ st.set_page_config(page_title="Troškovi", layout="centered")
 FILE = "data.json"
 
 # ---------------------------
-# FORMAT
+# FORMAT BROJA
 # ---------------------------
 def format_money(x):
-    return f"{x:,.2f}"
+    return f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 # ---------------------------
 # LOAD / SAVE
@@ -72,7 +72,7 @@ if "month" not in st.session_state:
 
 month = st.session_state["month"]
 
-if month not in data or not isinstance(data[month], dict):
+if month not in data:
     data[month] = {"plata": 0.0, "troskovi": []}
     save_data(data)
 
@@ -120,22 +120,11 @@ st.subheader("📊 Pregled")
 troskovi = data[month]["troskovi"]
 
 ukupno = sum(x["iznos"] for x in troskovi)
-potrebe = sum(x["iznos"] for x in troskovi if x["kategorija"] == "🏠 Potrebe")
-zelje = sum(x["iznos"] for x in troskovi if x["kategorija"] == "🎉 Želje")
 
-st.write(f"🏠 Potrebe: {format_money(potrebe)} RSD")
-st.write(f"🎉 Želje: {format_money(zelje)} RSD")
 st.write(f"📦 Ukupno: {format_money(ukupno)} RSD")
 
-ostaje = plata - ukupno
-
-if ostaje >= 0:
-    st.success(f"Ostaje: {format_money(ostaje)} RSD")
-else:
-    st.error(f"Minus: {format_money(abs(ostaje))} RSD")
-
 # ---------------------------
-# SORT TOP 3
+# LISTA (FORMAT KOJI SI TRAŽIO)
 # ---------------------------
 st.divider()
 st.subheader("📋 Svi troškovi")
@@ -154,64 +143,19 @@ else:
     for i in range(len(troskovi)):
         x = troskovi[i]
 
-        col1, col2, col3, col4 = st.columns([4, 2, 1, 1])
-
-        # NAZIV (normalan)
-        with col1:
-            st.write(f"**{x['naziv']}**")
-
-        # KATEGORIJA (malo svetlije)
-        with col2:
-            st.write(x["kategorija"])
-
-        # IZNOS (BOJA)
         color = "red" if i in top3 else "green"
 
-        with col3:
+        col1, col2 = st.columns([6, 2])
+
+        with col1:
+            st.markdown(
+                f"{x['naziv']} {x['kategorija']}"
+            )
+
+        with col2:
             st.markdown(
                 f"<span style='color:{color}; font-weight:bold'>"
-                f"{format_money(x['iznos'])}"
+                f"→ {format_money(x['iznos'])} RSD"
                 f"</span>",
                 unsafe_allow_html=True
             )
-
-        # EDIT
-        with col4:
-            col_edit, col_del = st.columns(2)
-
-            with col_edit:
-                if st.button("✏️", key=f"edit_{i}"):
-                    st.session_state["edit_index"] = i
-
-            with col_del:
-                if st.button("🗑️", key=f"del_{i}"):
-                    data[month]["troskovi"].pop(i)
-                    save_data(data)
-                    st.rerun()
-
-# ---------------------------
-# EDIT MODE
-# ---------------------------
-if "edit_index" in st.session_state:
-    idx = st.session_state["edit_index"]
-    item = data[month]["troskovi"][idx]
-
-    st.subheader("✏️ Edit")
-
-    new_name = st.text_input("Naziv", item["naziv"])
-    new_cat = st.selectbox(
-        "Kategorija",
-        ["🏠 Potrebe", "🎉 Želje"],
-        index=0 if item["kategorija"] == "🏠 Potrebe" else 1
-    )
-    new_amount = st.number_input("Iznos", value=float(item["iznos"]))
-
-    if st.button("Sačuvaj"):
-        data[month]["troskovi"][idx] = {
-            "naziv": new_name,
-            "kategorija": new_cat,
-            "iznos": float(new_amount)
-        }
-        save_data(data)
-        del st.session_state["edit_index"]
-        st.rerun()
