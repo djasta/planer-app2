@@ -48,7 +48,7 @@ def save_data(data):
 data = load_data()
 
 # ---------------------------
-# HOME / MESECI
+# HOME
 # ---------------------------
 st.title("💸 Finansije App")
 
@@ -96,7 +96,7 @@ data[month]["plata"] = float(plata)
 save_data(data)
 
 # ---------------------------
-# DODAVANJE TROŠKA
+# DODAVANJE
 # ---------------------------
 st.subheader("➕ Dodaj trošak")
 
@@ -127,29 +127,19 @@ ukupno = sum(x["iznos"] for x in troskovi)
 potrebe = sum(x["iznos"] for x in troskovi if x["kategorija"] == "🏠 Potrebe")
 zelje = sum(x["iznos"] for x in troskovi if x["kategorija"] == "🎉 Želje")
 
-if currency == "EUR":
-    st.write(f"🏠 Potrebe: {format_money(potrebe * RSD_TO_EUR)} €")
-    st.write(f"🎉 Želje: {format_money(zelje * RSD_TO_EUR)} €")
-    st.write(f"📦 Ukupno: {format_money(ukupno * RSD_TO_EUR)} €")
+st.write(f"🏠 Potrebe: {format_money(potrebe)} RSD")
+st.write(f"🎉 Želje: {format_money(zelje)} RSD")
+st.write(f"📦 Ukupno: {format_money(ukupno)} RSD")
 
-    ostaje = (plata - ukupno) * RSD_TO_EUR
-    if ostaje >= 0:
-        st.success(f"Ostaje: {format_money(ostaje)} €")
-    else:
-        st.error(f"Minus: {format_money(abs(ostaje))} €")
+ostaje = plata - ukupno
+
+if ostaje >= 0:
+    st.success(f"Ostaje: {format_money(ostaje)} RSD")
 else:
-    st.write(f"🏠 Potrebe: {format_money(potrebe)} RSD")
-    st.write(f"🎉 Želje: {format_money(zelje)} RSD")
-    st.write(f"📦 Ukupno: {format_money(ukupno)} RSD")
-
-    ostaje = plata - ukupno
-    if ostaje >= 0:
-        st.success(f"Ostaje: {format_money(ostaje)} RSD")
-    else:
-        st.error(f"Minus: {format_money(abs(ostaje))} RSD")
+    st.error(f"Minus: {format_money(abs(ostaje))} RSD")
 
 # ---------------------------
-# SORTIRANJE (TOP 3 NA VRH)
+# SORTIRANJE (TOP 3 BOJI SAMO IZNOS)
 # ---------------------------
 st.divider()
 st.subheader("📋 Svi troškovi")
@@ -157,36 +147,33 @@ st.subheader("📋 Svi troškovi")
 if len(troskovi) == 0:
     st.info("Nema troškova još.")
 else:
-    # indeksi sortirani po iznosu
     sorted_indices = sorted(
         range(len(troskovi)),
         key=lambda i: troskovi[i]["iznos"],
         reverse=True
     )
 
-    # top 3 + ostali
-    top3 = sorted_indices[:3]
-    rest = sorted_indices[3:]
-    final_order = top3 + rest
+    top3 = set(sorted_indices[:3])
 
-    for i in final_order:
+    for i in range(len(troskovi)):
         x = troskovi[i]
 
-        col1, col2, col3 = st.columns([4, 1, 1])
+        col1, col2, col3 = st.columns([5, 1, 1])
 
+        # naziv UVEK belo
+        with col1:
+            st.markdown(f"**{x['naziv']}** ({x['kategorija']})")
+
+        # samo IZNOS obojen
         color = "red" if i in top3 else "green"
 
-        with col1:
+        with col2:
             st.markdown(
                 f"<span style='color:{color}; font-weight:bold'>"
-                f"{x['naziv']} ({x['kategorija']}) → {format_money(x['iznos'])} RSD"
+                f"{format_money(x['iznos'])} RSD"
                 f"</span>",
                 unsafe_allow_html=True
             )
-
-        with col2:
-            if st.button("✏️", key=f"edit_{i}"):
-                st.session_state["edit_index"] = i
 
         with col3:
             if st.button("🗑️", key=f"del_{i}"):
