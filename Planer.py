@@ -14,7 +14,7 @@ def format_money(x):
     return f"{x:,.2f}"
 
 # ---------------------------
-# LOAD / SAVE (SA MIGRACIJOM)
+# LOAD / SAVE + MIGRACIJA
 # ---------------------------
 def load_data():
     if os.path.exists(FILE):
@@ -24,7 +24,7 @@ def load_data():
             except:
                 return {}
 
-        # FIX: star → nov format
+        # FIX starog formata
         for month in list(data.keys()):
             if isinstance(data[month], list):
                 data[month] = {
@@ -76,7 +76,7 @@ if "month" not in st.session_state:
 
 month = st.session_state["month"]
 
-# safety fix (CRITICAL)
+# safety
 if month not in data or not isinstance(data[month], dict):
     data[month] = {"plata": 0.0, "troskovi": []}
     save_data(data)
@@ -85,7 +85,7 @@ st.divider()
 st.title(f"📊 {month}")
 
 # ---------------------------
-# PLATA (SAVE PO MESECU)
+# PLATA
 # ---------------------------
 plata = st.number_input(
     "💰 Plata",
@@ -153,23 +153,7 @@ else:
         st.error(f"Minus: {format_money(abs(ostaje))} RSD")
 
 # ---------------------------
-# TOP 3
-# ---------------------------
-st.divider()
-st.subheader("🔥 Top 3 troška")
-
-top3 = sorted(troskovi, key=lambda x: x["iznos"], reverse=True)[:3]
-
-for x in top3:
-    st.markdown(
-        f"<span style='color:red; font-weight:bold'>"
-        f"{x['naziv']} → {format_money(x['iznos'])} RSD"
-        f"</span>",
-        unsafe_allow_html=True
-    )
-
-# ---------------------------
-# LISTA + EDIT + DELETE
+# LISTA (TOP 3 CRVENO, OSTALO ZELENO)
 # ---------------------------
 st.divider()
 st.subheader("📋 Svi troškovi")
@@ -177,11 +161,21 @@ st.subheader("📋 Svi troškovi")
 if len(troskovi) == 0:
     st.info("Nema troškova još.")
 else:
+    # sort za top 3
+    top3_ids = sorted(range(len(troskovi)), key=lambda i: troskovi[i]["iznos"], reverse=True)[:3]
+
     for i, x in enumerate(troskovi):
         col1, col2, col3 = st.columns([4, 1, 1])
 
+        color = "red" if i in top3_ids else "green"
+
         with col1:
-            st.write(f"**{x['naziv']}** ({x['kategorija']}) → {format_money(x['iznos'])} RSD")
+            st.markdown(
+                f"<span style='color:{color}; font-weight:bold'>"
+                f"{x['naziv']} ({x['kategorija']}) → {format_money(x['iznos'])} RSD"
+                f"</span>",
+                unsafe_allow_html=True
+            )
 
         with col2:
             if st.button("✏️", key=f"edit_{i}"):
