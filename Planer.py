@@ -5,6 +5,7 @@ import os
 st.set_page_config(page_title="Troškovi", layout="centered")
 
 FILE = "data.json"
+RSD_TO_EUR = 0.0085  # približno
 
 # ---------------------------
 # LOAD / SAVE
@@ -27,9 +28,17 @@ def save_data(data):
 data = load_data()
 
 # ---------------------------
-# HOME / MESECI
+# FORMAT
+# ---------------------------
+def format_money(x):
+    return f"{x:,.2f}"
+
+# ---------------------------
+# INIT MONTH
 # ---------------------------
 st.title("💸 Finansije App")
+
+currency = st.radio("Valuta", ["RSD", "EUR"])
 
 st.subheader("📁 Meseci")
 
@@ -38,7 +47,7 @@ new_month = st.text_input("Novi mesec (npr. Maj 2026)")
 if st.button("➕ Kreiraj / Otvori mesec"):
     if new_month:
         if new_month not in data:
-            data[new_month] = []
+            data[new_month] = {"plata": 0.0, "troskovi": []}
             save_data(data)
         st.session_state["month"] = new_month
 
@@ -52,13 +61,25 @@ if "month" not in st.session_state:
 
 month = st.session_state["month"]
 
+# sigurnost strukture
+if month not in data:
+    data[month] = {"plata": 0.0, "troskovi": []}
+
 st.divider()
 st.title(f"📊 {month}")
 
 # ---------------------------
-# PLATA
+# PLATA (SAVE PO MESECU)
 # ---------------------------
-plata = st.number_input("💰 Plata (RSD)", min_value=0.0, step=500.0)
+plata = st.number_input(
+    "💰 Plata",
+    min_value=0.0,
+    step=500.0,
+    value=float(data[month]["plata"])
+)
+
+data[month]["plata"] = float(plata)
+save_data(data)
 
 # ---------------------------
 # DODAVANJE TROŠKA
@@ -71,7 +92,7 @@ iznos = st.number_input("Iznos", min_value=0.0, step=100.0)
 
 if st.button("Dodaj"):
     if naziv:
-        data[month].append({
+        data[month]["troskovi"].append({
             "naziv": naziv,
             "kategorija": kategorija,
             "iznos": float(iznos)
@@ -85,25 +106,55 @@ if st.button("Dodaj"):
 st.divider()
 st.subheader("📊 Pregled")
 
-troskovi = data.get(month, [])
+troskovi = data[month]["troskovi"]
+plata = data[month]["plata"]
 
 ukupno = sum(x["iznos"] for x in troskovi)
 potrebe = sum(x["iznos"] for x in troskovi if x["kategorija"] == "🏠 Potrebe")
 zelje = sum(x["iznos"] for x in troskovi if x["kategorija"] == "🎉 Želje")
 
-st.write(f"🏠 Potrebe: {potrebe:.2f} RSD")
-st.write(f"🎉 Želje: {zelje:.2f} RSD")
-st.write(f"📦 Ukupno: {ukupno:.2f} RSD")
+if currency == "EUR":
+    st.write(f"🏠 Potrebe: {format_money(potrebe * RSD_TO_EUR)} €")
+    st.write(f"🎉 Želje: {format_money(zelje * RSD_TO_EUR)} €")
+    st.write(f"📦 Ukupno: {format_money(ukupno * RSD_TO_EUR)} €")
 
-ostaje = plata - ukupno
+    ostaje = (plata - ukupno) * RSD_TO_EUR
 
-if ostaje >= 0:
-    st.success(f"Ostaje: {ostaje:.2f} RSD")
+    if ostaje >= 0:
+        st.success(f"Ostaje: {format_money(ostaje)} €")
+    else:
+        st.error(f"Minus: {format_money(abs(ostaje))} €")
+
 else:
-    st.error(f"Minus: {abs(ostaje):.2f} RSD")
+    st.write(f"🏠 Potrebe: {format_money(potrebe)} RSD")
+    st.write(f"🎉 Želje: {format_money(zelje)} RSD")
+    st.write(f"📦 Ukupno: {format_money(ukupno)} RSD")
+
+    ostaje = plata - ukupno
+
+    if ostaje >= 0:
+        st.success(f"Ostaje: {format_money(ostaje)} RSD")
+    else:
+        st.error(f"Minus: {format_money(abs(ostaje))} RSD")
 
 # ---------------------------
-# LISTA + BRISANJE
+# TOP 3
+# ---------------------------
+st.divider()
+st.subheader("🔥 Top 3 troška")
+
+top3 = sorted(troskovi, key=lambda x: x["iznos"], reverse=True)[:3]
+
+for x in top3:
+    st.markdown(
+        f"<span style='color:red; font-weight:bold'>"
+        f"{x['naziv']} → {format_money(x['iznos'])} RSD"
+        f"</span>",
+        unsafe_allow_html=True
+    )
+
+# ---------------------------
+# LISTA + EDIT + DELETE
 # ---------------------------
 st.divider()
 st.subheader("📋 Svi troškovi")
@@ -112,17 +163,44 @@ if len(troskovi) == 0:
     st.info("Nema troškova još.")
 else:
     for i, x in enumerate(troskovi):
-        col1, col2 = st.columns([4, 1])
+        col1, col2, col3 = st.columns([4, 1, 1])
 
         with col1:
-            st.markdown(
-                f"**{x['naziv']}** ({x['kategorija']}) → "
-                f"<span style='color:#00C853; font-weight:bold'>{x['iznos']:.2f} RSD</span>",
-                unsafe_allow_html=True
-            )
+            st.write(f"**{x['naziv']}** ({x['kategorija']}) → {format_money(x['iznos'])} RSD")
 
         with col2:
+            if st.button("✏️", key=f"edit_{i}"):
+                st.session_state["edit_index"] = i
+
+        with col3:
             if st.button("🗑️", key=f"del_{i}"):
-                data[month].pop(i)
+                data[month]["troskovi"].pop(i)
                 save_data(data)
                 st.rerun()
+
+# ---------------------------
+# EDIT MODE
+# ---------------------------
+if "edit_index" in st.session_state:
+    idx = st.session_state["edit_index"]
+    item = data[month]["troskovi"][idx]
+
+    st.subheader("✏️ Edit trošak")
+
+    new_name = st.text_input("Naziv", item["naziv"])
+    new_cat = st.selectbox(
+        "Kategorija",
+        ["🏠 Potrebe", "🎉 Želje"],
+        index=0 if item["kategorija"] == "🏠 Potrebe" else 1
+    )
+    new_amount = st.number_input("Iznos", value=float(item["iznos"]))
+
+    if st.button("Sačuvaj"):
+        data[month]["troskovi"][idx] = {
+            "naziv": new_name,
+            "kategorija": new_cat,
+            "iznos": float(new_amount)
+        }
+        save_data(data)
+        del st.session_state["edit_index"]
+        st.rerun()
