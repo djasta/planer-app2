@@ -5,7 +5,7 @@ import os
 st.set_page_config(page_title="Troškovi", layout="centered")
 
 FILE = "data.json"
-RSD_TO_EUR = 0.0085  # približno
+RSD_TO_EUR = 0.0085
 
 # ---------------------------
 # FORMAT
@@ -24,7 +24,6 @@ def load_data():
             except:
                 return {}
 
-        # FIX starog formata
         for month in list(data.keys()):
             if isinstance(data[month], list):
                 data[month] = {
@@ -76,7 +75,6 @@ if "month" not in st.session_state:
 
 month = st.session_state["month"]
 
-# safety
 if month not in data or not isinstance(data[month], dict):
     data[month] = {"plata": 0.0, "troskovi": []}
     save_data(data)
@@ -135,7 +133,6 @@ if currency == "EUR":
     st.write(f"📦 Ukupno: {format_money(ukupno * RSD_TO_EUR)} €")
 
     ostaje = (plata - ukupno) * RSD_TO_EUR
-
     if ostaje >= 0:
         st.success(f"Ostaje: {format_money(ostaje)} €")
     else:
@@ -146,14 +143,13 @@ else:
     st.write(f"📦 Ukupno: {format_money(ukupno)} RSD")
 
     ostaje = plata - ukupno
-
     if ostaje >= 0:
         st.success(f"Ostaje: {format_money(ostaje)} RSD")
     else:
         st.error(f"Minus: {format_money(abs(ostaje))} RSD")
 
 # ---------------------------
-# LISTA (TOP 3 CRVENO, OSTALO ZELENO)
+# SORTIRANJE (TOP 3 NA VRH)
 # ---------------------------
 st.divider()
 st.subheader("📋 Svi troškovi")
@@ -161,13 +157,24 @@ st.subheader("📋 Svi troškovi")
 if len(troskovi) == 0:
     st.info("Nema troškova još.")
 else:
-    # sort za top 3
-    top3_ids = sorted(range(len(troskovi)), key=lambda i: troskovi[i]["iznos"], reverse=True)[:3]
+    # indeksi sortirani po iznosu
+    sorted_indices = sorted(
+        range(len(troskovi)),
+        key=lambda i: troskovi[i]["iznos"],
+        reverse=True
+    )
 
-    for i, x in enumerate(troskovi):
+    # top 3 + ostali
+    top3 = sorted_indices[:3]
+    rest = sorted_indices[3:]
+    final_order = top3 + rest
+
+    for i in final_order:
+        x = troskovi[i]
+
         col1, col2, col3 = st.columns([4, 1, 1])
 
-        color = "red" if i in top3_ids else "green"
+        color = "red" if i in top3 else "green"
 
         with col1:
             st.markdown(
