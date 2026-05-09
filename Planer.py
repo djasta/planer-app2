@@ -124,7 +124,7 @@ ukupno = sum(x["iznos"] for x in troskovi)
 st.write(f"📦 Ukupno: {format_money(ukupno)} RSD")
 
 # ---------------------------
-# LISTA (FORMAT KOJI SI TRAŽIO)
+# LISTA (FORMAT + EDIT + DELETE OSTAJU)
 # ---------------------------
 st.divider()
 st.subheader("📋 Svi troškovi")
@@ -143,14 +143,14 @@ else:
     for i in range(len(troskovi)):
         x = troskovi[i]
 
-        color = "red" if i in top3 else "green"
+        col1, col2, col3, col4 = st.columns([5, 2, 1, 1])
 
-        col1, col2 = st.columns([6, 2])
-
+        # FORMAT: naziv + kategorija
         with col1:
-            st.markdown(
-                f"{x['naziv']} {x['kategorija']}"
-            )
+            st.markdown(f"{x['naziv']} {x['kategorija']}")
+
+        # IZNOS (BOJA)
+        color = "red" if i in top3 else "green"
 
         with col2:
             st.markdown(
@@ -159,3 +159,42 @@ else:
                 f"</span>",
                 unsafe_allow_html=True
             )
+
+        # EDIT
+        with col3:
+            if st.button("✏️", key=f"edit_{i}"):
+                st.session_state["edit_index"] = i
+
+        # DELETE
+        with col4:
+            if st.button("🗑️", key=f"del_{i}"):
+                data[month]["troskovi"].pop(i)
+                save_data(data)
+                st.rerun()
+
+# ---------------------------
+# EDIT MODE
+# ---------------------------
+if "edit_index" in st.session_state:
+    idx = st.session_state["edit_index"]
+    item = data[month]["troskovi"][idx]
+
+    st.subheader("✏️ Edit trošak")
+
+    new_name = st.text_input("Naziv", item["naziv"])
+    new_cat = st.selectbox(
+        "Kategorija",
+        ["🏠 Potrebe", "🎉 Želje"],
+        index=0 if item["kategorija"] == "🏠 Potrebe" else 1
+    )
+    new_amount = st.number_input("Iznos", value=float(item["iznos"]))
+
+    if st.button("Sačuvaj"):
+        data[month]["troskovi"][idx] = {
+            "naziv": new_name,
+            "kategorija": new_cat,
+            "iznos": float(new_amount)
+        }
+        save_data(data)
+        del st.session_state["edit_index"]
+        st.rerun()
