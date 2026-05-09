@@ -112,7 +112,7 @@ if st.button("Dodaj"):
         st.success("Dodato ✔")
 
 # ---------------------------
-# PREGLED
+# PREGLED (VRACENO)
 # ---------------------------
 st.divider()
 st.subheader("📊 Pregled")
@@ -120,11 +120,22 @@ st.subheader("📊 Pregled")
 troskovi = data[month]["troskovi"]
 
 ukupno = sum(x["iznos"] for x in troskovi)
+potrebe = sum(x["iznos"] for x in troskovi if x["kategorija"] == "🏠 Potrebe")
+zelje = sum(x["iznos"] for x in troskovi if x["kategorija"] == "🎉 Želje")
 
+st.write(f"🏠 Potrebe: {format_money(potrebe)} RSD")
+st.write(f"🎉 Želje: {format_money(zelje)} RSD")
 st.write(f"📦 Ukupno: {format_money(ukupno)} RSD")
 
+ostaje = plata - ukupno
+
+if ostaje >= 0:
+    st.success(f"Ostaje: {format_money(ostaje)} RSD")
+else:
+    st.error(f"Minus: {format_money(abs(ostaje))} RSD")
+
 # ---------------------------
-# LISTA (FORMAT + EDIT + DELETE OSTAJU)
+# LISTA + TOP 3 BOJA + EDIT + DELETE
 # ---------------------------
 st.divider()
 st.subheader("📋 Svi troškovi")
@@ -145,11 +156,9 @@ else:
 
         col1, col2, col3, col4 = st.columns([5, 2, 1, 1])
 
-        # FORMAT: naziv + kategorija
         with col1:
             st.markdown(f"{x['naziv']} {x['kategorija']}")
 
-        # IZNOS (BOJA)
         color = "red" if i in top3 else "green"
 
         with col2:
@@ -160,12 +169,10 @@ else:
                 unsafe_allow_html=True
             )
 
-        # EDIT
         with col3:
             if st.button("✏️", key=f"edit_{i}"):
                 st.session_state["edit_index"] = i
 
-        # DELETE
         with col4:
             if st.button("🗑️", key=f"del_{i}"):
                 data[month]["troskovi"].pop(i)
