@@ -4,6 +4,31 @@ import os
 
 st.set_page_config(page_title="Troškovi", layout="centered")
 
+# ---------------------------
+# MOBILE FIX ZA DUGMICE
+# ---------------------------
+st.markdown("""
+<style>
+@media (max-width: 768px) {
+
+    div[data-testid="stHorizontalBlock"] {
+        flex-direction: row !important;
+        align-items: center !important;
+    }
+
+    div[data-testid="column"] {
+        width: auto !important;
+        flex: 1 1 auto !important;
+    }
+
+    div.stButton > button {
+        width: 100%;
+        padding: 0.35rem 0.45rem;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
+
 FILE = "data.json"
 
 # ---------------------------
@@ -112,7 +137,7 @@ if st.button("Dodaj"):
         st.success("Dodato ✔")
 
 # ---------------------------
-# PREGLED (VRACENO)
+# PREGLED
 # ---------------------------
 st.divider()
 st.subheader("📊 Pregled")
@@ -135,7 +160,7 @@ else:
     st.error(f"Minus: {format_money(abs(ostaje))} RSD")
 
 # ---------------------------
-# LISTA + TOP 3 BOJA + EDIT + DELETE
+# LISTA + EDIT + DELETE
 # ---------------------------
 st.divider()
 st.subheader("📋 Svi troškovi")
