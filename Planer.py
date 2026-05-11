@@ -4,6 +4,31 @@ import os
 
 st.set_page_config(page_title="Troškovi", layout="centered")
 
+# ---------------------------
+# MOBILE FIX SAMO ZA EDIT / DELETE DUGMAD
+# ---------------------------
+st.markdown("""
+<style>
+@media (max-width: 768px) {
+    div[data-testid="column"] div[data-testid="stHorizontalBlock"] {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 8px !important;
+    }
+
+    div[data-testid="column"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        width: 50% !important;
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+    }
+
+    div.stButton > button {
+        width: 100%;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
+
 FILE = "data.json"
 
 # ---------------------------
@@ -154,33 +179,30 @@ else:
     for i in range(len(troskovi)):
         x = troskovi[i]
 
-        col1, col2, col3 = st.columns([5, 2, 2])
-
-        with col1:
-            st.markdown(f"{x['naziv']} {x['kategorija']}")
+        st.markdown(f"### {i + 1}. {x['naziv']} {x['kategorija']}")
 
         color = "red" if i in top3 else "green"
 
-        with col2:
-            st.markdown(
-                f"<span style='color:{color}; font-weight:bold'>"
-                f"→ {format_money(x['iznos'])} RSD"
-                f"</span>",
-                unsafe_allow_html=True
-            )
+        st.markdown(
+            f"<span style='color:{color}; font-weight:bold; font-size:20px;'>"
+            f"→ {format_money(x['iznos'])} RSD"
+            f"</span>",
+            unsafe_allow_html=True
+        )
 
-        with col3:
-            btn1, btn2 = st.columns(2)
+        btn1, btn2 = st.columns(2)
 
-            with btn1:
-                if st.button("✏️", key=f"edit_{i}"):
-                    st.session_state["edit_index"] = i
+        with btn1:
+            if st.button("✏️", key=f"edit_{i}", use_container_width=True):
+                st.session_state["edit_index"] = i
 
-            with btn2:
-                if st.button("🗑️", key=f"del_{i}"):
-                    data[month]["troskovi"].pop(i)
-                    save_data(data)
-                    st.rerun()
+        with btn2:
+            if st.button("🗑️", key=f"del_{i}", use_container_width=True):
+                data[month]["troskovi"].pop(i)
+                save_data(data)
+                st.rerun()
+
+        st.divider()
 
 # ---------------------------
 # EDIT MODE
