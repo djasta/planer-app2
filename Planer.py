@@ -160,7 +160,7 @@ else:
     st.error(f"Minus: {format_money(abs(ostaje))} RSD")
 
 # ---------------------------
-# LISTA + TOP 3 BOJA + EDIT + DELETE
+# LISTA PO FOLDERIMA + EDIT + DELETE
 # ---------------------------
 st.divider()
 st.subheader("📋 Svi troškovi")
@@ -176,33 +176,43 @@ else:
 
     top3 = set(sorted_indices[:3])
 
-    for i in range(len(troskovi)):
-        x = troskovi[i]
+    kategorije = ["🏠 Potrebe", "🎉 Želje"]
 
-        st.markdown(f"### {i + 1}. {x['naziv']} {x['kategorija']}")
+    for kat in kategorije:
+        stavke = [
+            (i, x) for i, x in enumerate(troskovi)
+            if x["kategorija"] == kat
+        ]
 
-        color = "red" if i in top3 else "green"
+        with st.expander(f"{kat} ({len(stavke)})", expanded=True):
+            if len(stavke) == 0:
+                st.info("Nema troškova u ovoj kategoriji.")
+            else:
+                for broj, (i, x) in enumerate(stavke, start=1):
+                    color = "red" if i in top3 else "green"
 
-        st.markdown(
-            f"<span style='color:{color}; font-weight:bold; font-size:20px;'>"
-            f"→ {format_money(x['iznos'])} RSD"
-            f"</span>",
-            unsafe_allow_html=True
-        )
+                    st.markdown(f"### {broj}. {x['naziv']}")
 
-        btn1, btn2 = st.columns(2)
+                    st.markdown(
+                        f"<span style='color:{color}; font-weight:bold; font-size:20px;'>"
+                        f"→ {format_money(x['iznos'])} RSD"
+                        f"</span>",
+                        unsafe_allow_html=True
+                    )
 
-        with btn1:
-            if st.button("✏️", key=f"edit_{i}", use_container_width=True):
-                st.session_state["edit_index"] = i
+                    btn1, btn2 = st.columns(2)
 
-        with btn2:
-            if st.button("🗑️", key=f"del_{i}", use_container_width=True):
-                data[month]["troskovi"].pop(i)
-                save_data(data)
-                st.rerun()
+                    with btn1:
+                        if st.button("✏️ Edit", key=f"edit_{kat}_{i}", use_container_width=True):
+                            st.session_state["edit_index"] = i
 
-        st.divider()
+                    with btn2:
+                        if st.button("🗑️ Delete", key=f"del_{kat}_{i}", use_container_width=True):
+                            data[month]["troskovi"].pop(i)
+                            save_data(data)
+                            st.rerun()
+
+                    st.divider()
 
 # ---------------------------
 # EDIT MODE
