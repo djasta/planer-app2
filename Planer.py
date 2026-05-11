@@ -4,31 +4,6 @@ import os
 
 st.set_page_config(page_title="Troškovi", layout="centered")
 
-# ---------------------------
-# MOBILE FIX ZA DUGMICE
-# ---------------------------
-st.markdown("""
-<style>
-@media (max-width: 768px) {
-
-    div[data-testid="stHorizontalBlock"] {
-        flex-direction: row !important;
-        align-items: center !important;
-    }
-
-    div[data-testid="column"] {
-        width: auto !important;
-        flex: 1 1 auto !important;
-    }
-
-    div.stButton > button {
-        width: 100%;
-        padding: 0.35rem 0.45rem;
-    }
-}
-</style>
-""", unsafe_allow_html=True)
-
 FILE = "data.json"
 
 # ---------------------------
@@ -160,7 +135,7 @@ else:
     st.error(f"Minus: {format_money(abs(ostaje))} RSD")
 
 # ---------------------------
-# LISTA + EDIT + DELETE
+# LISTA + TOP 3 BOJA + EDIT + DELETE
 # ---------------------------
 st.divider()
 st.subheader("📋 Svi troškovi")
@@ -179,7 +154,7 @@ else:
     for i in range(len(troskovi)):
         x = troskovi[i]
 
-        col1, col2, col3, col4 = st.columns([5, 2, 1, 1])
+        col1, col2, col3 = st.columns([5, 2, 2])
 
         with col1:
             st.markdown(f"{x['naziv']} {x['kategorija']}")
@@ -195,14 +170,17 @@ else:
             )
 
         with col3:
-            if st.button("✏️", key=f"edit_{i}"):
-                st.session_state["edit_index"] = i
+            btn1, btn2 = st.columns(2)
 
-        with col4:
-            if st.button("🗑️", key=f"del_{i}"):
-                data[month]["troskovi"].pop(i)
-                save_data(data)
-                st.rerun()
+            with btn1:
+                if st.button("✏️", key=f"edit_{i}"):
+                    st.session_state["edit_index"] = i
+
+            with btn2:
+                if st.button("🗑️", key=f"del_{i}"):
+                    data[month]["troskovi"].pop(i)
+                    save_data(data)
+                    st.rerun()
 
 # ---------------------------
 # EDIT MODE
