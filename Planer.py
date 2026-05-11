@@ -7,15 +7,9 @@ st.set_page_config(page_title="Troškovi", layout="centered")
 
 FILE = "data.json"
 
-# ---------------------------
-# FORMAT BROJA
-# ---------------------------
 def format_money(x):
     return f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-# ---------------------------
-# LOAD / SAVE
-# ---------------------------
 def load_data():
     if os.path.exists(FILE):
         with open(FILE, "r") as f:
@@ -26,16 +20,10 @@ def load_data():
 
         for month in list(data.keys()):
             if isinstance(data[month], list):
-                data[month] = {
-                    "plata": 0.0,
-                    "troskovi": data[month]
-                }
+                data[month] = {"plata": 0.0, "troskovi": data[month]}
 
             if not isinstance(data[month], dict):
-                data[month] = {
-                    "plata": 0.0,
-                    "troskovi": []
-                }
+                data[month] = {"plata": 0.0, "troskovi": []}
 
             for trosak in data[month].get("troskovi", []):
                 if "datum" not in trosak:
@@ -51,11 +39,7 @@ def save_data(data):
 
 data = load_data()
 
-# ---------------------------
-# HOME
-# ---------------------------
 st.title("💸 Finansije App")
-
 st.subheader("📁 Meseci")
 
 new_month = st.text_input("Novi mesec")
@@ -84,9 +68,6 @@ if month not in data:
 st.divider()
 st.title(f"📊 {month}")
 
-# ---------------------------
-# PLATA
-# ---------------------------
 plata = st.number_input(
     "💰 Plata",
     min_value=0.0,
@@ -97,9 +78,6 @@ plata = st.number_input(
 data[month]["plata"] = float(plata)
 save_data(data)
 
-# ---------------------------
-# DODAVANJE
-# ---------------------------
 st.subheader("➕ Dodaj trošak")
 
 naziv = st.text_input("Naziv")
@@ -118,9 +96,6 @@ if st.button("Dodaj"):
         st.success("Dodato ✔")
         st.rerun()
 
-# ---------------------------
-# PREGLED
-# ---------------------------
 st.divider()
 st.subheader("📊 Pregled")
 
@@ -141,9 +116,6 @@ if ostaje >= 0:
 else:
     st.error(f"Minus: {format_money(abs(ostaje))} RSD")
 
-# ---------------------------
-# LISTA PO FOLDERIMA + DATUM + EDIT + DELETE
-# ---------------------------
 st.divider()
 st.subheader("📋 Svi troškovi")
 
@@ -157,7 +129,6 @@ else:
     )
 
     top3 = set(sorted_indices[:3])
-
     kategorije = ["🏠 Potrebe", "🎉 Želje"]
 
     for kat in kategorije:
@@ -189,6 +160,7 @@ else:
                     with btn1:
                         if st.button("✏️ Edit", key=f"edit_{kat}_{i}", use_container_width=True):
                             st.session_state["edit_index"] = i
+                            st.rerun()
 
                     with btn2:
                         if st.button("🗑️ Delete", key=f"del_{kat}_{i}", use_container_width=True):
@@ -198,30 +170,43 @@ else:
 
                     st.divider()
 
-# ---------------------------
-# EDIT MODE
-# ---------------------------
 if "edit_index" in st.session_state:
     idx = st.session_state["edit_index"]
-    item = data[month]["troskovi"][idx]
 
-    st.subheader("✏️ Edit trošak")
+    if idx < len(data[month]["troskovi"]):
+        item = data[month]["troskovi"][idx]
 
-    new_name = st.text_input("Naziv", item["naziv"])
-    new_cat = st.selectbox(
-        "Kategorija",
-        ["🏠 Potrebe", "🎉 Želje"],
-        index=0 if item["kategorija"] == "🏠 Potrebe" else 1
-    )
-    new_amount = st.number_input("Iznos", value=float(item["iznos"]))
+        st.subheader("✏️ Edit trošak")
 
-    if st.button("Sačuvaj"):
-        data[month]["troskovi"][idx] = {
-            "naziv": new_name,
-            "kategorija": new_cat,
-            "iznos": float(new_amount),
-            "datum": item.get("datum", datetime.now().strftime("%d.%m.%Y"))
-        }
-        save_data(data)
+        new_name = st.text_input(
+            "Naziv",
+            item["naziv"],
+            key=f"edit_naziv_{idx}"
+        )
+
+        new_cat = st.selectbox(
+            "Kategorija",
+            ["🏠 Potrebe", "🎉 Želje"],
+            index=0 if item["kategorija"] == "🏠 Potrebe" else 1,
+            key=f"edit_kategorija_{idx}"
+        )
+
+        new_amount = st.number_input(
+            "Iznos",
+            value=float(item["iznos"]),
+            key=f"edit_iznos_{idx}"
+        )
+
+        if st.button("Sačuvaj", key=f"sacuvaj_edit_{idx}"):
+            data[month]["troskovi"][idx] = {
+                "naziv": new_name,
+                "kategorija": new_cat,
+                "iznos": float(new_amount),
+                "datum": item.get("datum", datetime.now().strftime("%d.%m.%Y"))
+            }
+            save_data(data)
+            del st.session_state["edit_index"]
+            st.rerun()
+    else:
         del st.session_state["edit_index"]
         st.rerun()
