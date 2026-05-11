@@ -1,33 +1,9 @@
 import streamlit as st
 import json
 import os
+from datetime import datetime
 
 st.set_page_config(page_title="Troškovi", layout="centered")
-
-# ---------------------------
-# MOBILE FIX SAMO ZA EDIT / DELETE DUGMAD
-# ---------------------------
-st.markdown("""
-<style>
-@media (max-width: 768px) {
-    div[data-testid="column"] div[data-testid="stHorizontalBlock"] {
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        gap: 8px !important;
-    }
-
-    div[data-testid="column"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-        width: 50% !important;
-        flex: 1 1 0 !important;
-        min-width: 0 !important;
-    }
-
-    div.stButton > button {
-        width: 100%;
-    }
-}
-</style>
-""", unsafe_allow_html=True)
 
 FILE = "data.json"
 
@@ -60,6 +36,10 @@ def load_data():
                     "plata": 0.0,
                     "troskovi": []
                 }
+
+            for trosak in data[month].get("troskovi", []):
+                if "datum" not in trosak:
+                    trosak["datum"] = "Bez datuma"
 
         return data
 
@@ -131,10 +111,12 @@ if st.button("Dodaj"):
         data[month]["troskovi"].append({
             "naziv": naziv,
             "kategorija": kategorija,
-            "iznos": float(iznos)
+            "iznos": float(iznos),
+            "datum": datetime.now().strftime("%d.%m.%Y")
         })
         save_data(data)
         st.success("Dodato ✔")
+        st.rerun()
 
 # ---------------------------
 # PREGLED
@@ -160,7 +142,7 @@ else:
     st.error(f"Minus: {format_money(abs(ostaje))} RSD")
 
 # ---------------------------
-# LISTA PO FOLDERIMA + EDIT + DELETE
+# LISTA PO FOLDERIMA + DATUM + EDIT + DELETE
 # ---------------------------
 st.divider()
 st.subheader("📋 Svi troškovi")
@@ -190,8 +172,10 @@ else:
             else:
                 for broj, (i, x) in enumerate(stavke, start=1):
                     color = "red" if i in top3 else "green"
+                    datum = x.get("datum", "Bez datuma")
 
                     st.markdown(f"### {broj}. {x['naziv']}")
+                    st.caption(f"📅 {datum}")
 
                     st.markdown(
                         f"<span style='color:{color}; font-weight:bold; font-size:20px;'>"
@@ -235,7 +219,8 @@ if "edit_index" in st.session_state:
         data[month]["troskovi"][idx] = {
             "naziv": new_name,
             "kategorija": new_cat,
-            "iznos": float(new_amount)
+            "iznos": float(new_amount),
+            "datum": item.get("datum", datetime.now().strftime("%d.%m.%Y"))
         }
         save_data(data)
         del st.session_state["edit_index"]
