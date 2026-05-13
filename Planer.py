@@ -4,8 +4,8 @@ from datetime import datetime
 
 st.set_page_config(page_title="Troškovi", layout="centered")
 
-SUPABASE_URL = "https://qdifdngohqyouhpodzyr.supabase.co"
-SUPABASE_KEY = "sb_publishable_3E-GawufqmlvRup6hmJ2mw_SJ7qLnx8"
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
