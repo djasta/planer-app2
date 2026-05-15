@@ -31,6 +31,7 @@ def get_expenses(month):
         .select("*")
         .eq("mesec", month)
         .neq("naziv", "__PLATA__")
+        .order("id", desc=True)
         .execute()
     )
     return response.data or []
