@@ -1,6 +1,8 @@
 import streamlit as st
 from supabase import create_client
 from datetime import datetime
+import pandas as pd
+from io import BytesIO
 
 st.set_page_config(page_title="Troškovi", layout="centered")
 
@@ -79,6 +81,29 @@ def save_salary(month, amount):
         }).eq("id", rows[0]["id"]).execute()
 
 
+# ---------------------------
+# EXPORT EXCEL
+# ---------------------------
+def export_excel(month, data):
+    if not data:
+        return None
+
+    df = pd.DataFrame(data)
+    df = df[["datum", "naziv", "kategorija", "iznos"]]
+    df["iznos"] = df["iznos"].astype(float)
+
+    output = BytesIO()
+
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name=month)
+
+    output.seek(0)
+    return output
+
+
+# ---------------------------
+# UI
+# ---------------------------
 st.title("💸 Finansije App")
 st.subheader("📁 Meseci")
 
@@ -162,6 +187,25 @@ if ostaje >= 0:
 else:
     st.error(f"Minus: {format_money(abs(ostaje))} RSD")
 
+
+# ---------------------------
+# EXPORT UI
+# ---------------------------
+st.subheader("⬇ Export")
+
+excel_file = export_excel(month, troskovi)
+
+if excel_file:
+    st.download_button(
+        label="⬇ Download Excel",
+        data=excel_file,
+        file_name=f"{month}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+else:
+    st.info("Nema podataka za export.")
+
+
 st.divider()
 st.subheader("📋 Svi troškovi")
 
@@ -213,6 +257,10 @@ else:
 
                     st.divider()
 
+
+# ---------------------------
+# EDIT
+# ---------------------------
 if "edit_id" in st.session_state:
     edit_id = st.session_state["edit_id"]
 
@@ -230,11 +278,7 @@ if "edit_id" in st.session_state:
 
         st.subheader("✏️ Edit trošak")
 
-        new_name = st.text_input(
-            "Naziv",
-            item["naziv"],
-            key=f"edit_naziv_{edit_id}"
-        )
+        new_name = st.text_input("Naziv", item["naziv"], key=f"edit_naziv_{edit_id}")
 
         new_cat = st.selectbox(
             "Kategorija",
